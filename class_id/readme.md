@@ -1,16 +1,16 @@
 This file guides the use of the code assign_class_index1.py
-Para executar o código, utilizar o seguinte comando:
+To run the code, use the following command:
 
 pyhton3 assign_class_index.py -c id_registro-id_animal-id_tipo.csv images/*
 
-Onde:
-- id_registro-id_animal-id_tipo.csv é um arquivo que contém a identificação de cada registro, com sua referida classe.
-- images é a pasta que contém as imagens que devem ser renomeadas.
+Where:
+- id_registro-id_animal-id_tipo.csv is a file that contains the identification of each record, with its class.
+- images is the folder that contains the images that should be renamed.
 
-O código irá renomear cada imagem de acordo com seu registro e sua classe, no seguinte formato:
+The code will rename each image according to its record and class, in the following format:
 
 id_register-class_index-image_number.jpg
 
-id: identificação do registro do SissGeo;
-class: Classe presente na imagem;
-image number: número da imagem para registros que possuem mais de uma imagem.
+id: SissGeo record identification;
+class: Class present in the image;
+image number: image number for records that have more than one image.
