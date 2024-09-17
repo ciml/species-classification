@@ -20,6 +20,14 @@ fitness_function = fitness_func
 num_generations = 100 # Number of generations.
 num_parents_mating = 7 # Number of solutions to be selected as parents in the mating pool.
 
+parent_selection_type = "sss"
+keep_parents = 1
+
+crossover_type = "single_point"
+
+mutation_type = "random"
+mutation_percent_genes = 10
+
 # To prepare the initial population, there are 2 ways:
 # 1) Prepare it yourself and pass it to the initial_population parameter. This way is useful when the user wants to start the genetic algorithm with a custom initial population.
 # 2) Assign valid integer values to the sol_per_pop and num_genes parameters. If the initial_population parameter exists, then the sol_per_pop and num_genes parameters are useless.
