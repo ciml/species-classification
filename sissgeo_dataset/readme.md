@@ -24,4 +24,5 @@ The initial dataset consists of images of 15 animal classes. The set is separate
 - The records used for training, validation and testing are previously separated, in order to use the same records for training the species distribution model.
 - There are records that have more than one image. In this case, all available images are used and the classification is done for each record in two ways: the record is considered, averaging the predicted probability for all images, or each image and its predicted probability are used separately.
 - In MaxEnt, the result presents an estimate of the existence of the species based on its geographic location. This normalizes the generated results for comparison purposes.
-
+- The original images are present in all training datasets.
+- Images are randomly selected from the training set partitions. However, we aim to ensure a balance between the number of enlarged images for each record.
