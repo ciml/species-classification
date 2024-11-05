@@ -1,77 +1,111 @@
-import pygad
-import numpy
+import numpy as np
+import pandas as pd
+import random
 
-function_inputs = resnet_class & maxent_class
-desired_output = real_class # Function output.
+# Leitura do arquivo CSV
+def carregar_dados(caminho_arquivo):
+    df = pd.read_csv(caminho_arquivo)
+    # Supondo que o CSV tem 30 colunas: 15 para o modelo 1 e 15 para o modelo 2
+    modelo1 = df.iloc[:, :15].values  # Probabilidades do modelo 1
+    modelo2 = df.iloc[:, 15:].values  # Probabilidades do modelo 2
+    return modelo1, modelo2
 
-def fitness_func(ga_instance, solution, solution_idx):
-    # Calculating the fitness value of each solution in the current population.
-    # The fitness function calulates the sum of products between each input and its corresponding weight.
-    if(solution*resnet_class > (1-solution)*maxent_class)
-	output_aux = resnet_class
-	else
-	output_aux = maxent_class
-    if 
-    fitness = 1.0 / numpy.abs(output - desired_output)
+# Função de avaliação (fitness)
+# O fitness será a acurácia de classificação após a combinação dos modelos
+def calcular_fitness(populacao, modelo1, modelo2):
+    fitness = []
+    for individuo in populacao:
+        w1, w2 = individuo  # Pesos dos dois modelos
+
+        acertos = 0
+        for i in range(len(modelo1)):
+            # Combina as probabilidades dos dois modelos
+            prob_comb = w1 * modelo1[i] + w2 * modelo2[i]
+            predicao = np.argmax(prob_comb)  # A classe com maior probabilidade
+            classe_real = np.argmax(modelo1[i])  # Assume que a classe real é a do modelo 1
+            if predicao == classe_real:
+                acertos += 1
+
+        # Acurácia como fitness
+        fitness.append(acertos / len(modelo1))
     return fitness
 
-fitness_function = fitness_func
+# Inicialização da população
+def inicializar_populacao(tamanho_populacao):
+    # Cada indivíduo tem dois parâmetros: w1 (peso do modelo 1) e w2 (peso do modelo 2)
+    # Inicia com valores aleatórios entre 0 e 1 para w1 e w2
+    return [[random.random(), random.random()] for _ in range(tamanho_populacao)]
 
-num_generations = 100 # Number of generations.
-num_parents_mating = 7 # Number of solutions to be selected as parents in the mating pool.
+# Normalizar os pesos para somarem 1 (evita que um modelo tenha peso zero)
+def normalizar_pesos(individuo):
+    w1, w2 = individuo
+    total = w1 + w2
+    return [w1 / total, w2 / total]
 
-parent_selection_type = "sss"
-keep_parents = 1
+# Seleção por torneio
+def selecao(populacao, fitness):
+    indice_pais = []
+    for _ in range(len(populacao) // 2):
+        torneio = random.sample(range(len(populacao)), 3)
+        melhor_individuo = max(torneio, key=lambda i: fitness[i])
+        indice_pais.append(melhor_individuo)
+    return indice_pais
 
-crossover_type = "single_point"
+# Cruzamento de dois indivíduos
+def cruzamento(pai1, pai2):
+    # Cruzamento de um ponto: combinamos os pesos de cada modelo
+    ponto_cruzamento = random.randint(0, 1)  # Cruzamos os dois parâmetros (w1, w2)
+    if ponto_cruzamento == 0:
+        filho1 = [pai1[0], pai2[1]]
+        filho2 = [pai2[0], pai1[1]]
+    else:
+        filho1 = [pai2[0], pai1[1]]
+        filho2 = [pai1[0], pai2[1]]
+    return filho1, filho2
 
-mutation_type = "random"
-mutation_percent_genes = 10
+# Mutação de um indivíduo
+def mutacao(individuo, taxa_mutacao):
+    if random.random() < taxa_mutacao:
+        # Muta um dos pesos aleatoriamente
+        indice_mutacao = random.randint(0, 1)
+        individuo[indice_mutacao] = random.random()  # Atribui um valor aleatório
+    return normalizar_pesos(individuo)
 
-# To prepare the initial population, there are 2 ways:
-# 1) Prepare it yourself and pass it to the initial_population parameter. This way is useful when the user wants to start the genetic algorithm with a custom initial population.
-# 2) Assign valid integer values to the sol_per_pop and num_genes parameters. If the initial_population parameter exists, then the sol_per_pop and num_genes parameters are useless.
-sol_per_pop = 50 # Number of solutions in the population.
-num_genes = len(function_inputs)
+# Algoritmo Genético
+def algoritmo_genetico(caminho_arquivo, tamanho_populacao=100, num_geracoes=50, taxa_mutacao=0.1):
+    modelo1, modelo2 = carregar_dados(caminho_arquivo)
 
-last_fitness = 0
-def callback_generation(ga_instance):
-    global last_fitness
-    print(f"Generation = {ga_instance.generations_completed}")
-    print(f"Fitness    = {ga_instance.best_solution()[1]}")
-    print(f"Change     = {ga_instance.best_solution()[1] - last_fitness}")
-    last_fitness = ga_instance.best_solution()[1]
+    populacao = inicializar_populacao(tamanho_populacao)
 
-# Creating an instance of the GA class inside the ga module. Some parameters are initialized within the constructor.
-ga_instance = pygad.GA(num_generations=num_generations,
-                       num_parents_mating=num_parents_mating, 
-                       fitness_func=fitness_function,
-                       sol_per_pop=sol_per_pop, 
-                       num_genes=num_genes,
-                       on_generation=callback_generation)
+    for geracao in range(num_geracoes):
+        fitness = calcular_fitness(populacao, modelo1, modelo2)
 
-# Running the GA to optimize the parameters of the function.
-ga_instance.run()
+        # Seleção dos pais
+        pais = selecao(populacao, fitness)
 
-# After the generations complete, some plots are showed that summarize the how the outputs/fitenss values evolve over generations.
-ga_instance.plot_fitness()
+        # Criação dos filhos
+        nova_populacao = []
+        for i in range(0, len(pais), 2):
+            pai1 = populacao[pais[i]]
+            pai2 = populacao[pais[i + 1]]
+            filho1, filho2 = cruzamento(pai1, pai2)
+            nova_populacao.append(mutacao(filho1, taxa_mutacao))
+            nova_populacao.append(mutacao(filho2, taxa_mutacao))
 
-# Returning the details of the best solution.
-solution, solution_fitness, solution_idx = ga_instance.best_solution()
-print(f"Parameters of the best solution : {solution}")
-print(f"Fitness value of the best solution = {solution_fitness}")
-print(f"Index of the best solution : {solution_idx}")
+        # Substitui a população antiga pela nova população
+        populacao = nova_populacao
 
-prediction = numpy.sum(numpy.array(function_inputs)*solution)
-print(f"Predicted output based on the best solution : {prediction}")
+        # Exibir a melhor solução da geração
+        melhor_fitness = max(fitness)
+        print(f"Geração {geracao + 1}/{num_geracoes} - Melhor Fitness: {melhor_fitness:.4f}")
 
-if ga_instance.best_solution_generation != -1:
-    print(f"Best fitness value reached after {ga_instance.best_solution_generation} generations.")
+    # Melhor indivíduo após as gerações
+    melhor_individuo = populacao[np.argmax(fitness)]
+    return melhor_individuo
 
-# Saving the GA instance.
-filename = 'genetic' # The filename to which the instance is saved. The name is without extension.
-ga_instance.save(filename=filename)
+# Caminho do arquivo CSV
+caminho_arquivo = "seu_arquivo.csv"
 
-# Loading the saved GA instance.
-loaded_ga_instance = pygad.load(filename=filename)
-loaded_ga_instance.plot_fitness()
+# Executa o algoritmo genético
+melhor_solucao = algoritmo_genetico(caminho_arquivo)
+print(f"\nMelhor solução encontrada: {melhor_solucao}")
