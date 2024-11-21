@@ -12,3 +12,10 @@ The project structure is as follows:
  - genetic_alg: Genetic algorithm to combine image classification and species distribution models.
  - sdm_model: Species distribution model, used to estimate the existence of animals according to their geographic location.
  - sissgeo_dataset: Dataset with records of Brazilian fauna animals used for classification.
+
+# Model Execution
+- Data preprocessing: Organization and separation of data by class; Application of data augmentation to balance the original set; Organization of data for training, validation and testing.
+- Model Training: ResNet and MaxEnt Training.
+- Preparing data for analysis: Organizing data into tables that contain all predicted probabilities for ResNet and MaxEnt.
+- Execution of the Genetic Algorithm: Training of the Genetic Algorithm to generate 1 and 15 parameters for combining ResNet and MaxEnt.
+- Analysis of results: Analysis of metrics to compare the results obtained by all trained models.
