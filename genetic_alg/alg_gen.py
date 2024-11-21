@@ -1,111 +1,114 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score
 import random
 
-# Leitura do arquivo CSV
-def carregar_dados(caminho_arquivo):
-    df = pd.read_csv(caminho_arquivo)
-    # Supondo que o CSV tem 30 colunas: 15 para o modelo 1 e 15 para o modelo 2
-    modelo1 = df.iloc[:, :15].values  # Probabilidades do modelo 1
-    modelo2 = df.iloc[:, 15:].values  # Probabilidades do modelo 2
-    return modelo1, modelo2
+# Function to load data
+def load_data(file_path):
+    """
+    Loads the data from the CSV file and separates it into ID, actual labels and predictions from both models.
+    """
+    data = pd.read_csv(file_path)
+    ids = data.iloc[:, 0].values  # Record IDs
+    y_true = data.iloc[:, 1].values  # Real exits
+    model_1_probs = data.iloc[:, 2:17].values  # ResNet Probabilities
+    model_2_probs = data.iloc[:, 17:32].values  # MaxEnt Probabilities
+    return ids, y_true, model_1_probs, model_2_probs
 
-# Função de avaliação (fitness)
-# O fitness será a acurácia de classificação após a combinação dos modelos
-def calcular_fitness(populacao, modelo1, modelo2):
-    fitness = []
-    for individuo in populacao:
-        w1, w2 = individuo  # Pesos dos dois modelos
+# Evaluation function
+def evaluate(y_true, combined_probs):
+    """
+    Evaluates accuracy by combining predictions and calculating accuracy.
+    """
+    y_pred = np.argmax(combined_probs, axis=1)
+    return accuracy_score(y_true, y_pred)
 
-        acertos = 0
-        for i in range(len(modelo1)):
-            # Combina as probabilidades dos dois modelos
-            prob_comb = w1 * modelo1[i] + w2 * modelo2[i]
-            predicao = np.argmax(prob_comb)  # A classe com maior probabilidade
-            classe_real = np.argmax(modelo1[i])  # Assume que a classe real é a do modelo 1
-            if predicao == classe_real:
-                acertos += 1
+# Combining model probabilities
+def combine_probabilities(model_1_probs, model_2_probs, weight):
+    """
+    Combines the probabilities of the two models using a weight.
+    """
+    return weight * model_1_probs + (1 - weight) * model_2_probs
 
-        # Acurácia como fitness
-        fitness.append(acertos / len(modelo1))
-    return fitness
+# Function to create the initial population
+def create_population(size):
+    """
+    Creates an initial population of random weights between 0 and 1.
+    """
+    return np.random.rand(size)
 
-# Inicialização da população
-def inicializar_populacao(tamanho_populacao):
-    # Cada indivíduo tem dois parâmetros: w1 (peso do modelo 1) e w2 (peso do modelo 2)
-    # Inicia com valores aleatórios entre 0 e 1 para w1 e w2
-    return [[random.random(), random.random()] for _ in range(tamanho_populacao)]
+# Selection of the best individuals
+def select(population, scores, num_parents):
+    """
+    Selects the best individuals from the population based on the score.
+    """
+    selected_indices = np.argsort(scores)[-num_parents:]
+    return population[selected_indices]
 
-# Normalizar os pesos para somarem 1 (evita que um modelo tenha peso zero)
-def normalizar_pesos(individuo):
-    w1, w2 = individuo
-    total = w1 + w2
-    return [w1 / total, w2 / total]
+# Crossover function
+def crossover(parents, offspring_size):
+    """
+    It crosses between parents to generate new individuals.
+    """
+    offspring = []
+    for _ in range(offspring_size):
+        parent1, parent2 = random.sample(list(parents), 2)
+        child = (parent1 + parent2) / 2
+        offspring.append(child)
+    return np.array(offspring)
 
-# Seleção por torneio
-def selecao(populacao, fitness):
-    indice_pais = []
-    for _ in range(len(populacao) // 2):
-        torneio = random.sample(range(len(populacao)), 3)
-        melhor_individuo = max(torneio, key=lambda i: fitness[i])
-        indice_pais.append(melhor_individuo)
-    return indice_pais
+# Mutation function
+def mutate(offspring, mutation_rate=0.1):
+    """
+    Applies mutation to individuals in the population.
+    """
+    for i in range(len(offspring)):
+        if random.random() < mutation_rate:
+            offspring[i] += np.random.normal(0, 0.1)  # Pequena alteração
+            offspring[i] = np.clip(offspring[i], 0, 1)  # Mantém o peso entre 0 e 1
+    return offspring
 
-# Cruzamento de dois indivíduos
-def cruzamento(pai1, pai2):
-    # Cruzamento de um ponto: combinamos os pesos de cada modelo
-    ponto_cruzamento = random.randint(0, 1)  # Cruzamos os dois parâmetros (w1, w2)
-    if ponto_cruzamento == 0:
-        filho1 = [pai1[0], pai2[1]]
-        filho2 = [pai2[0], pai1[1]]
-    else:
-        filho1 = [pai2[0], pai1[1]]
-        filho2 = [pai1[0], pai2[1]]
-    return filho1, filho2
+# Main genetic algorithm
+def genetic_algorithm(y_true, model_1_probs, model_2_probs, num_generations=10000, population_size=1000, num_parents=50, mutation_rate=0.1):
+    """
+    Runs the genetic algorithm to find the best combination weight.
+    """
+    # Creation of the initial population
+    population = create_population(population_size)
+    
+    for generation in range(num_generations):
+        # Population assessment
+        scores = []
+        for weight in population:
+            combined_probs = combine_probabilities(model_1_probs, model_2_probs, weight)
+            accuracy = evaluate(y_true, combined_probs)
+            scores.append(accuracy)
+        
+        # Selection of the best
+        scores = np.array(scores)
+        parents = select(population, scores, num_parents)
+        
+        # Crossing and mutation to generate new population
+        offspring_size = population_size - num_parents
+        offspring = crossover(parents, offspring_size)
+        offspring = mutate(offspring, mutation_rate)
+        
+        # Update the population
+        population = np.concatenate((parents, offspring))
+        
+        # Best individual of this generation
+        best_score = max(scores)
+        best_weight = population[np.argmax(scores)]
+        print(f"Generation {generation + 1} - Best score: {best_score:.4f}, Best weight: {best_weight:.4f}")
+    
+    # Best weight found
+    best_weight = population[np.argmax(scores)]
+    return best_weight
 
-# Mutação de um indivíduo
-def mutacao(individuo, taxa_mutacao):
-    if random.random() < taxa_mutacao:
-        # Muta um dos pesos aleatoriamente
-        indice_mutacao = random.randint(0, 1)
-        individuo[indice_mutacao] = random.random()  # Atribui um valor aleatório
-    return normalizar_pesos(individuo)
+# Load the data
+file_path = "dados.csv"  
+ids, y_true, model_1_probs, model_2_probs = load_data(file_path)
 
-# Algoritmo Genético
-def algoritmo_genetico(caminho_arquivo, tamanho_populacao=100, num_geracoes=50, taxa_mutacao=0.1):
-    modelo1, modelo2 = carregar_dados(caminho_arquivo)
-
-    populacao = inicializar_populacao(tamanho_populacao)
-
-    for geracao in range(num_geracoes):
-        fitness = calcular_fitness(populacao, modelo1, modelo2)
-
-        # Seleção dos pais
-        pais = selecao(populacao, fitness)
-
-        # Criação dos filhos
-        nova_populacao = []
-        for i in range(0, len(pais), 2):
-            pai1 = populacao[pais[i]]
-            pai2 = populacao[pais[i + 1]]
-            filho1, filho2 = cruzamento(pai1, pai2)
-            nova_populacao.append(mutacao(filho1, taxa_mutacao))
-            nova_populacao.append(mutacao(filho2, taxa_mutacao))
-
-        # Substitui a população antiga pela nova população
-        populacao = nova_populacao
-
-        # Exibir a melhor solução da geração
-        melhor_fitness = max(fitness)
-        print(f"Geração {geracao + 1}/{num_geracoes} - Melhor Fitness: {melhor_fitness:.4f}")
-
-    # Melhor indivíduo após as gerações
-    melhor_individuo = populacao[np.argmax(fitness)]
-    return melhor_individuo
-
-# Caminho do arquivo CSV
-caminho_arquivo = "seu_arquivo.csv"
-
-# Executa o algoritmo genético
-melhor_solucao = algoritmo_genetico(caminho_arquivo)
-print(f"\nMelhor solução encontrada: {melhor_solucao}")
+# Run the genetic algorithm
+melhor_peso = genetic_algorithm(y_true, model_1_probs, model_2_probs)
+print(f"Best weight found: {melhor_peso}")
