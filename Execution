@@ -1,7 +1,17 @@
 Execution of the methodology worked on:
 
-1- pyhton3 assign_class_index.py -c id_registro-id_animal-id_tipo.csv images/*
-2- python3 prepro.py --dataset-path datasets/sissgeo
-3- python3 train.py -lr --num-epochs --batch-size  --save-every 5
-4- Rscript modelR_sdm.R -c <arquivo_de_treinamento.csv> -o <nome_do_diretorio_do_modelo> -lon <lon> -lat <lat> -m <nome_do_diretorio_do_modelo_treinado>
-5- 
+Step 1 - Dataset organization: Separation of images by class.
+
+pyhton3 assign_class_index.py -c id_registro-id_animal-id_tipo.csv images/*
+
+Step 2 - Data Augmentation: Data augmentation for image set balancing.
+python3 prepro.py --dataset-path datasets/sissgeo
+
+Step 3 - Image Classification Model training: 
+python3 train.py -lr --num-epochs --batch-size  --save-every 5
+
+Step 4 - Species Distribution Model training: 
+Rscript modelR_sdm.R -c <arquivo_de_treinamento.csv> -o <nome_do_diretorio_do_modelo> -lon <lon> -lat <lat> -m <nome_do_diretorio_do_modelo_treinado>
+
+Step 5 - Genetic Algorithm Execution:
+
