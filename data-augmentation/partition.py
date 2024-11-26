@@ -24,18 +24,22 @@ def ensure_augmentation_diversity(images, augmented_tags, subset_size):
     for tag, image_list in augmented_tags.items():
         if image_list:
             selected_image = random.choice(image_list)
-            selected.append(selected_image)
-            used_tags.add(tag)
-            remaining_images.remove(selected_image)
+            if selected_image in remaining_images:  # Verificar antes de remover
+                selected.append(selected_image)
+                used_tags.add(tag)
+                remaining_images.remove(selected_image)
 
     # Preencher o restante com amostragem aleatória
     while len(selected) < subset_size:
+        if not remaining_images:
+            break  # Evitar loop infinito se não houver mais imagens disponíveis
         candidate = random.choice(remaining_images)
         if candidate not in selected:
             selected.append(candidate)
             remaining_images.remove(candidate)
 
     return selected
+
 
 def split_dataset(input_dir, output_dir, train_count, val_count, test_count):
     """
