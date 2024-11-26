@@ -22,8 +22,11 @@ def main():
     execute_command(step1_command, "Passo 1 - Organização do Dataset")
 
     # Passo 2: Aumento de Dados
-    step2_command = "python3 cnn_model/prepro.py --dataset-path datasets/sissgeo"
+    step2_command = "python3 data-augmentation/augmentation.py"
     execute_command(step2_command, "Passo 2 - Aumento de Dados")
+    # Passo 2-1: Separação de Dados
+    step21_command = "python3 data-augmentation/partition.py"
+    execute_command(step21_command, "Passo 2 - Separação de Dados")
 
     # Passo 3: Treinamento do Modelo de Classificação de Imagens
     step3_command = (
