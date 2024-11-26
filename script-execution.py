@@ -24,15 +24,13 @@ def main():
     # Passo 2: Aumento de Dados
     step2_command = "python3 data-augmentation/augmentation.py"
     execute_command(step2_command, "Passo 2 - Aumento de Dados")
+   
     # Passo 2-1: Separação de Dados
     step21_command = "python3 data-augmentation/partition.py"
     execute_command(step21_command, "Passo 2 - Separação de Dados")
 
     # Passo 3: Treinamento do Modelo de Classificação de Imagens
-    step3_command = (
-        "python3 cnn_model/train.py "
-        "-lr 0.001 --num-epochs 50 --batch-size 32 --save-every 5"
-    )
+    step3_command = ("python3 cnn_model/resnet-50.py ")
     execute_command(step3_command, "Passo 3 - Treinamento do Modelo de Classificação de Imagens")
 
     # Passo 4: Treinamento do Modelo de Distribuição de Espécies
