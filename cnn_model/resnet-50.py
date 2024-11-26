@@ -8,17 +8,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import pandas as pd
 
 # Configurações
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 20
+EPOCHS = 2
 NUM_CLASSES = 15
+OUTPUT_DIR = "/home/user/species-classification/output_csv"  # Caminho para salvar os CSVs
 
 # Caminhos para os conjuntos de dados
-TRAIN_DIR = "path_to_training_data"  # Substituir pelo caminho das imagens de treinamento
-VAL_DIR = "path_to_validation_data"  # Substituir pelo caminho das imagens de validação
-TEST_DIR = "path_to_test_data"       # Substituir pelo caminho das imagens de teste
+TRAIN_DIR = "/home/user/species-classification/dataset/train"
+VAL_DIR = "/home/user/species-classification/dataset/val"
+TEST_DIR = "/home/user/species-classification/dataset/test"
+
+# Criar pasta para os CSVs, se necessário
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Geradores de dados
 train_datagen = ImageDataGenerator(rescale=1.0/255, 
@@ -86,6 +91,29 @@ model.save("resnet50_model.h5")
 test_loss, test_accuracy = model.evaluate(test_generator)
 print(f"Test Loss: {test_loss}")
 print(f"Test Accuracy: {test_accuracy}")
+
+# Função para gerar previsões e salvar CSV
+def generate_predictions_csv(generator, model, output_path, dataset_name):
+    """
+    Gera previsões para um conjunto de dados e salva um arquivo CSV com as probabilidades.
+    """
+    predictions = model.predict(generator, verbose=1)
+    image_ids = [os.path.basename(path) for path in generator.filenames]
+    class_labels = list(generator.class_indices.keys())
+
+    # Criar DataFrame
+    df = pd.DataFrame(predictions, columns=class_labels)
+    df.insert(0, 'image_id', image_ids)
+
+    # Salvar CSV
+    csv_path = os.path.join(output_path, f"{dataset_name}_predictions.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"{dataset_name.capitalize()} CSV salvo em: {csv_path}")
+
+# Geração de arquivos CSV para cada conjunto
+generate_predictions_csv(train_generator, model, OUTPUT_DIR, "train")
+generate_predictions_csv(val_generator, model, OUTPUT_DIR, "validation")
+generate_predictions_csv(test_generator, model, OUTPUT_DIR, "test")
 
 # Predições no conjunto de teste
 predictions = model.predict(test_generator)
